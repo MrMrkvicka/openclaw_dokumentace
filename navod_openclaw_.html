@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Návod: OpenClaw + Ollama na GNU/Linux</title>
+<style>
+  body {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 12pt;
+    color: #000;
+    background: #fff;
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 0 40px 60px;
+    line-height: 1.5;
+  }
+
+  h1 {
+    font-size: 18pt;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+
+  h2 {
+    font-size: 14pt;
+    font-weight: bold;
+    margin-top: 24px;
+    margin-bottom: 4px;
+  }
+
+  h3 {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-top: 16px;
+    margin-bottom: 2px;
+  }
+
+  p {
+    margin: 6px 0;
+  }
+
+  ul, ol {
+    margin: 6px 0 6px 24px;
+  }
+
+  li {
+    margin-bottom: 3px;
+  }
+
+  pre {
+    background: #f2f2f2;
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    font-family: Courier New, monospace;
+    font-size: 10pt;
+    margin: 8px 0;
+    white-space: pre-wrap;
+  }
+
+  .meta {
+    margin-bottom: 24px;
+    color: #333;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid #000;
+    margin: 16px 0;
+  }
+
+  .note {
+    background: #fff8dc;
+    border-left: 3px solid #e6a800;
+    padding: 6px 10px;
+    margin: 8px 0;
+    font-size: 11pt;
+  }
+
+  .warn {
+    background: #fff0f0;
+    border-left: 3px solid #cc0000;
+    padding: 6px 10px;
+    margin: 8px 0;
+    font-size: 11pt;
+  }
+</style>
+</head>
+<body>
+
+<h1>Instalace a konfigurace OpenClaw s Ollama na GNU/Linux</h1>
+<hr>
+<div class="meta">
+  <p><strong>Škola:</strong> Obchodní akademie OAUH</p>
+  <p><strong>Autoři:</strong> Matěj Šmíd, Tomáš Ondra</p>
+  <p><strong>Datum:</strong> 8. června 2026</p>
+  <p><strong>Operační systém:</strong> Debian GNU/Linux</p>
+</div>
+
+<h2>Požadavky</h2>
+<ul>
+  <li>Operační systém Debian GNU/Linux</li>
+  <li>Alespoň 8 GB RAM (doporučeno 16 GB a více)</li>
+  <li>Alespoň 5 GB volného místa na disku</li>
+  <li>Připojení k internetu (pro instalaci)</li>
+</ul>
+
+<h2>Postup instalace</h2>
+
+<h3>Krok 1 – Instalace curl</h3>
+<p>Na čisté instalaci Debianu nemusí být nástroj <code>curl</code> k dispozici. Nainstalujeme ho příkazem:</p>
+<pre>sudo apt update && sudo apt install curl -y</pre>
+
+<h3>Krok 2 – Instalace OpenClaw</h3>
+<p>OpenClaw nainstalujeme pomocí oficiálního instalačního skriptu:</p>
+<pre>curl -fsSL https://openclaw.ai/install.sh | bash</pre>
+<div class="note">Při průvodci nastavte: model provider → Ollama, výchozí model → Ollama/Demo, komunikační kanál → Skip for now, web search → Skip for now.</div>
+
+<h3>Krok 3 – Generování gateway tokenu</h3>
+<p>Pro přístup do webového rozhraní je potřeba vygenerovat autentizační token, pokud se nevygeneroval automaticky:</p>
+<pre>openclaw doctor --generate-gateway-token</pre>
+<p>Po vygenerování otevřete prohlížeč na adrese <strong>http://127.0.0.1:18789/</strong> a token vložte do přihlašovacího formuláře.</p>
+<div class="warn">Token je citlivý údaj – nesdílejte ho veřejně ani ho neukládejte do GitHub repozitáře.</div>
+
+<h3>Krok 4 – Instalace Ollama</h3>
+<p>Ollama slouží ke stahování a spouštění jazykových modelů lokálně:</p>
+<pre>curl -fsSL https://ollama.com/install.sh | sh</pre>
+<div class="note">Instalátor může zobrazit chybu „useradd: not found" – tato chyba je nezávažná a funkčnost Ollama neovlivní.</div>
+
+<h3>Krok 5 – Spuštění Ollama serveru</h3>
+<p>Ollama server musíme spustit na pozadí, aby byl dostupný pro OpenClaw:</p>
+<pre>ollama serve &</pre>
+<div class="note">Znak &amp; zajistí spuštění na pozadí, terminál zůstane volný pro další příkazy.</div>
+
+<h3>Krok 6 – Stažení lokálního modelu</h3>
+<p>Stáhneme jazykový model llama3.2:3b (cca 2 GB, vhodný pro počítače s 8+ GB RAM):</p>
+<pre>ollama pull llama3.2:3b</pre>
+<p>Úspěšné stažení ověříme příkazem:</p>
+<pre>ollama list</pre>
+
+<h3>Krok 7 – Konfigurace modelu v OpenClaw</h3>
+<p>Otevřeme soubor <code>~/.openclaw/openclaw.json</code> a upravíme sekci <code>agents.defaults.models</code>:</p>
+<pre>"models": {
+  "ollama/Demo": {},
+  "ollama/llama3.2:3b": {}
+}</pre>
+<p>A nastavíme primární model agenta:</p>
+<pre>"model": { "primary": "ollama/llama3.2:3b" }</pre>
+
+<h3>Krok 8 – Spuštění po restartu</h3>
+<p>OpenClaw se spouští automaticky přes systemd – stačí otevřít prohlížeč na <strong>http://127.0.0.1:18789/</strong>. Ollama je třeba spustit ručně:</p>
+<pre>ollama serve &</pre>
+
+<h2>Zdroje</h2>
+<ol>
+  <li>OpenClaw – oficiální dokumentace. Dostupné z: https://docs.openclaw.ai/ [cit. 2026].</li>
+  <li>Ollama – oficiální dokumentace. Dostupné z: https://ollama.com/ [cit. 2026].</li>
+  <li>ProgrammingKnowledge – How to setup OpenClaw on Ubuntu Linux [online tutoriál]. Dostupné z: https://www.youtube.com/ [cit. 2026].</li>
+</ol>
+
+</body>
+</html>
